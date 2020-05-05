@@ -119,6 +119,7 @@ class HashTable:
 
 
 
+
     def resize(self):
         """
         Doubles the capacity of the hash table and
