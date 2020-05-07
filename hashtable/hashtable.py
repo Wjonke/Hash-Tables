@@ -18,7 +18,6 @@ class DoublyLinkedList:
             self.tail.next = new_entry
             self.tail = new_entry
 
-
     def find_node(self, key):
         cur = self.head
         while cur is not None:
@@ -26,7 +25,6 @@ class DoublyLinkedList:
                 return cur
             cur = cur.next
         return None
-
 
     def delete(self, node):
         self.length -= 1
@@ -49,9 +47,6 @@ class HashTableEntry:
     """
 
     def __init__(self, key, value, prev=None, next=None):
-        # self.key = key
-        # self.value = value     day 1
-        # self.next = None
         self.key = key
         self.value = value
         self.next = next
@@ -80,13 +75,13 @@ class HashTable:
     """
     A hash table that with `capacity` buckets
     that accepts string keys
-
     Implement this.
     """
 
     def __init__(self, capacity):
-        self.capacity = capacity
-        self.storage = [DoublyLinkedList()] * capacity
+        self.capacity = capacity if capacity > 7 else 8
+        self.storage = [None] * capacity
+        self.items = 0
 
     def fnv1(self, key):
         """
@@ -110,8 +105,12 @@ class HashTable:
         Take an arbitrary key and return a valid integer index
         between within the storage capacity of the hash table.
         """
-        #return self.fnv1(key) % self.capacity
+        # return self.fnv1(key) % self.capacity
         return self.djb2(key) % self.capacity
+
+    def save(self, node_list, key, value):
+        node_list.add_to_list(key, value)
+        self.items += 1
 
     def put(self, key, value):
         """
@@ -119,39 +118,21 @@ class HashTable:
         Hash collisions should be handled with Linked List Chaining.
         Implement this.
         """
+        load = self.items / self.capacity
+        if load > .7:
+            self.resize(self.capacity * 2)
         index = self.hash_index(key)
+        if self.storage[index] is None:
+            self.storage[index] = DoublyLinkedList()
         dll_list = self.storage[index]
         if dll_list.head is None:
-            dll_list.add_to_list(key, value)
-        elif dll_list.head is dll_list.tail:
-            dll_list.add_to_list(key, value)
+            self.save(dll_list, key, value)
         else:
             found = dll_list.find_node(key)
             if found:
                 found.value = value
             else:
-                dll_list.add_to_list(key, value)
-        # index = self.hash_index(key)
-        # if self.storage[index] is not None:
-            # found_entry = None
-            # entry = self.storage[index]
-            # while entry.next is not None:
-            #     if entry.key == key:
-            #         found_entry = entry
-            #     entry = entry.next
-            # # Check if Entry is only one in hash table
-            # if found_entry is None and entry.key == key:        day 1
-            #     found_entry = entry
-            # if found_entry is None:
-            #     new_entry = HashTableEntry(key, value)
-            #     entry.next = new_entry
-                # else:
-                #     print(f'Found Value {found_entry.value}')
-                #     found_entry.value = value
-        # else:
-        #     entry = HashTableEntry(key, value)
-        #     self.storage[index] = entry
-
+                self.save(dll_list, key, value)
 
     def delete(self, key):
         """
@@ -163,46 +144,32 @@ class HashTable:
         node = self.storage[index].find_node(key)
         if node:
             self.storage[index].delete(node)
+            self.items -= 1
+            load = self.items / self.capacity
+            if load < .2:
+                new_capacity = self.capacity // 2
+                self.resize(new_capacity if new_capacity > 7 else 8)
         else:
             print(f'{key} was not found')
-
-
-        # index = self.hash_index(key)                  day 1
-        # # Grab the entry
-        # entry = self.storage[index]
-        # # Check if key matches entry.key
-        # if entry.key == key:
-        #     if entry.next is None:
-        #         self.storage[index] = None
-        #     else:
-        #         self.storage[index] = entry.next
-        # else:
-        #     print(f'else called, entry.key: {entry.key}, entry.value: {entry.value}, entry.next: {entry.next}')
-        #     if entry.next is not None:
-        #         if entry.next.key == key:
-        #             entry.next = None
-        # # check to see if there is a next
-        # # If there is, create a new Instance and loop through instance till entry.next is none
 
     def get(self, key):
         """
         Retrieve the value stored with the given key.
-
         Returns None if the key is not found.
-
         Implement this.
         """
         index = self.hash_index(key)
-        found = self.storage[index].find_node(key)
+        found = None
+        if self.storage[index] is not None:
+            found = self.storage[index].find_node(key)
         if found:
             return found.value
         else:
             return None
 
-
-        # index = self.hash_index(key)              day 1
         # value = None
         # entry = self.storage[index]
+        # entry.find_node(key)
         # while entry is not None and entry.key != key and entry.next is not None:
         #     if entry.key == key:
         #         value = entry.value
@@ -213,25 +180,23 @@ class HashTable:
         #     value = entry.value
         # return value
 
-
-
-
-    def resize(self):
+    def resize(self, new_capacity):
         """
         Doubles the capacity of the hash table and
         rehash all key/value pairs.
         Implement this.
         """
-        # old_storage = self.storage            day 1
-        # self.capacity = self.capacity * 2
-        # self.storage = [None] * self.capacity
-        # for list in old_storage:
-        #     entry = list
-        #     while entry.next is not None:
-        #         self.put(entry.key, entry.value)
-        #         entry = entry.next
-        #     self.put(entry.key, entry.value)
-
+        old_storage = self.storage
+        self.capacity = new_capacity
+        self.items = 0
+        self.storage = [None] * self.capacity
+        for i in range(len(old_storage)):
+            if old_storage[i] is not None:
+                cur = old_storage[i].head
+                while cur is not None:
+                    key, value = cur.key, cur.value
+                    self.put(key, value)
+                    cur = cur.next
 
 
 
@@ -242,7 +207,6 @@ if __name__ == "__main__":
     ht.put("line_2", "Filled beyond capacity")
     ht.put("line_3", "Linked list saves the day!")
     ht.put("line_3", "Successful ReWrite")
-
     print("")
 
     # Test storing beyond capacity
@@ -252,15 +216,15 @@ if __name__ == "__main__":
     print(ht.get("exist"))
 
     # Test resizing
-    old_capacity = len(ht.storage)
-    ht.resize()
-    new_capacity = len(ht.storage)
-
-    print(f"\nResized from {old_capacity} to {new_capacity}.\n")
-
-    # Test if data intact after resizing
-    print(ht.get("line_1"))
-    print(ht.get("line_2"))
-    print(ht.get("line_3"))
-
-    print("")
+    # old_capacity = len(ht.storage)
+    # ht.resize(4)
+    # new_capacity = len(ht.storage)
+    #
+    # print(f"\nResized from {old_capacity} to {new_capacity}.\n")
+    #
+    # # Test if data intact after resizing
+    # print(ht.get("line_1"))
+    # print(ht.get("line_2"))
+    # print(ht.get("line_3"))
+    #
+    # print("")
